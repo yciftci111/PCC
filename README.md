@@ -20,7 +20,7 @@ Elk blok levert naast het diagram een **geschreven advies**: een samenvatting va
 Verder:
 
 - **Meerdere respondenten per lijst.** Voeg per interview een respondent toe; het diagram toont het gemiddelde over alle respondenten, of alleen de geselecteerde.
-- **Tweetalig.** Knop rechtsboven wisselt tussen Nederlands en Engels. De vragen blijven Nederlands; navigatie, uitleg en resultaten wisselen mee.
+- **Tweetalig.** Knop rechtsboven wisselt tussen Nederlands en Engels. Navigatie, uitleg, resultaten, voetteksten en de volledige adviesteksten wisselen mee. Alleen de vragen zelf blijven Nederlands, omdat dat de taal is waarin de vragenlijsten zijn gevalideerd en waarin de gesprekken gevoerd worden.
 - **Lichte en donkere weergave**, met een knop en automatisch volgens de systeeminstelling.
 - **Export.** Diagram als PNG, gegevens als CSV, en afdrukken naar PDF voor de presentatie aan het eind van de dag.
 - **Toegankelijkheid.** Elk diagram heeft een tabelweergave; de scores staan nooit alleen in kleur.
@@ -33,7 +33,7 @@ De site heeft twee ingangen.
 De respondent kiest zelf welke rol op hem of haar van toepassing is (ik ontvang zorg / ik verleen zorg / over mijn eigen praktijk), vult die ene lijst in en krijgt daarna een bedankscherm met het eigen spinnenweb en een geschreven advies. Deze pagina heeft geen navigatie naar de onderzoekersweergave, toont geen andere respondenten en geen vergelijking.
 
 **`index.html` — de onderzoekersweergave.**
-Alle respondenten bij elkaar, de vergelijking, de export en het importeren van antwoorden. Deze kant staat achter een toegangscode, in te stellen in `assets/config.js` (standaard `pccd`).
+Alle respondenten bij elkaar, de vergelijking, de export en het importeren van antwoorden. Deze kant staat achter een toegangscode. Die staat in `assets/config.js` bij `onderzoekerscode` en is standaard **`pccd`** — verander hem voordat je de site publiceert. Wil je helemaal geen code, zet dan `codeVereist` op `false`.
 
 > Die code is een **drempel, geen beveiliging**. Op een openbare GitHub Pages-site kan iedereen de broncode lezen, dus ook de code. De werkelijke bescherming is dat er nergens antwoorden op een server staan: alles blijft in de browser van degene die het invulde. Zet je gevoelige gegevens in deze tool, gebruik dan geen openbare site.
 
@@ -120,7 +120,7 @@ Geen build-stap, geen afhankelijkheden, geen externe bronnen. De site werkt ook 
 
 **Dimensienamen** — ook in `assets/data.js`, in `PCC_DIMS` en `PCPIS_DIMS`. Voeg `shortNl` en `shortEn` toe als de volledige naam te lang is voor een as in het diagram; de volledige naam blijft dan in de tabel en de tooltip staan.
 
-**Adviesteksten** — `assets/advice.js`. Per dimensie staan er drie versies: voor een lage score (onder 2,5), een middenscore (2,5 tot 3,5) en een hoge score (3,5 en hoger). Bij de acht PCC-dimensies is er een variant voor de organisatie (`org`) en een voor de patiënt (`pat`); de patiëntvariant gaat over wat iemand zelf kan doen of bespreken, niet over wat de organisatie moet verbeteren.
+**Adviesteksten** — `assets/advice.js`, met een Nederlandse en een Engelse set (`PCC_NL` / `PCC_EN` en `PCPIS_NL` / `PCPIS_EN`). Per dimensie staan er drie versies: voor een lage score (onder 2,5), een middenscore (2,5 tot 3,5) en een hoge score (3,5 en hoger). Bij de acht PCC-dimensies is er een variant voor de organisatie (`org`) en een voor de patiënt (`pat`); de patiëntvariant gaat over wat iemand zelf kan doen of bespreken, niet over wat de organisatie moet verbeteren.
 
 **Instellingen per veldsessie** — `assets/config.js`: naam van de organisatie, het e-mailadres waar codes naartoe gaan, en de toegangscode voor de onderzoekersweergave.
 

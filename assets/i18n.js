@@ -124,6 +124,11 @@ const I18N = {
     lockWrong: 'Die code klopt niet.',
     lockNote: 'Dit is een drempel, geen beveiliging: op een openbare website is de broncode altijd leesbaar. Er staan hier geen antwoorden van respondenten op de server \u2014 alles blijft in de browser.',
     lockCode: 'Toegangscode',
+
+    // voetteksten
+    footerSources: 'PCC-dimensies (pati\u00ebnten en professionals) gebaseerd op de dimensies van het Picker Institute \u00b7 PCPI-S: Person-centred Practice Inventory \u2014 Staff (Slater, McCance en McCormack).',
+    footerResearcher: 'antwoorden blijven in deze browser.',
+    footerParticipant: 'Uw antwoorden blijven op dit apparaat. Er wordt niets verstuurd zonder dat u daar zelf op klikt.',
   },
 
   en: {
@@ -244,6 +249,10 @@ const I18N = {
     lockWrong: 'That code is not correct.',
     lockNote: 'This is a threshold, not security: on a public website the source is always readable. No respondent answers are stored on the server \u2014 everything stays in the browser.',
     lockCode: 'Access code',
+
+    footerSources: 'PCC dimensions (patients and professionals) based on the Picker Institute dimensions \u00b7 PCPI-S: Person-centred Practice Inventory \u2014 Staff (Slater, McCance and McCormack).',
+    footerResearcher: 'answers stay in this browser.',
+    footerParticipant: 'Your answers stay on this device. Nothing is sent unless you click to send it.',
   }
 };
 

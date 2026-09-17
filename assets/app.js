@@ -118,6 +118,17 @@ function buildChrome(active) {
     Theme.toggle();
     window.dispatchEvent(new Event('pccd:theme'));
   });
+  fillFooter();
+}
+
+// voettekst in de taal van de gebruiker
+function fillFooter() {
+  const f = document.querySelector('[data-footer]');
+  if (!f) return;
+  const kind = f.getAttribute('data-footer');
+  if (kind === 'sources') f.textContent = Lang.t('footerSources');
+  else if (kind === 'participant') f.textContent = Lang.t('footerParticipant');
+  else f.innerHTML = `<a href="index.html">${Lang.t('siteTitle')}</a> \u2014 ${Lang.t('footerResearcher')}`;
 }
 
 

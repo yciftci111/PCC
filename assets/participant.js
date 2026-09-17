@@ -83,6 +83,9 @@ function buildParticipant() {
     head.querySelector('#themeBtn').addEventListener('click', () => { Theme.toggle(); render(); });
   }
 
+  document.title = (CONFIG.organisatie ? CONFIG.organisatie + ' \u2014 ' : '') + Lang.t('pTagline');
+  fillFooter();
+
   function render() {
     const d = PStore.load();
     if (!d.role) return renderChoice();
