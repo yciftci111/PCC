@@ -9,7 +9,7 @@ const Store = {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { data = null; }
     if (!data || typeof data !== 'object') data = {};
-    if (typeof data.org !== 'string') data.org = '';
+    if (typeof data.org !== 'string') data.org = (typeof CONFIG !== 'undefined' ? CONFIG.organisatie : '') || '';
     for (const k of Object.keys(QUESTIONNAIRES)) {
       if (!data[k] || typeof data[k] !== 'object') data[k] = { respondents: [], current: null };
       if (!Array.isArray(data[k].respondents)) data[k].respondents = [];
@@ -120,6 +120,71 @@ function buildChrome(active) {
   });
 }
 
+
+/* ---------- advies ---------- */
+function adviceCard(sec, L, short) {
+  const nm = L === 'nl' ? sec.dim.nl : sec.dim.en;
+  return `<article class="advice-item advice-${sec.band.id}">
+      <header>
+        <h4>${nm}</h4>
+        <span class="advice-score">${sec.mean.toFixed(1)}</span>
+        <span class="badge badge-${sec.band.id}">${sec.band[L]}</span>
+      </header>
+      <p class="advice-beeld">${sec.beeld}</p>
+      ${short ? '' : `<p class="advice-actie"><strong>${Lang.t('whatToDo')}:</strong> ${sec.actie}</p>`}
+    </article>`;
+}
+
+function renderAdvice(host, qKey, means, L, voice) {
+  if (!host) return;
+  const a = buildAdvice(qKey, means, L, voice);
+  if (!a) { host.innerHTML = ''; return; }
+  host.innerHTML = `
+    <section class="panel advice">
+      <div class="advice-head">
+        <h2>${Lang.t('adviceTitle')}</h2>
+        <span class="badge badge-${a.band.id}">${a.band[L]}</span>
+        <span class="fineprint">${Lang.t('avgScore')} ${a.overall.toFixed(2)} · ${Lang.t('basedOn')} ${a.nTotal} ${Lang.t('answers')}</span>
+      </div>
+      <p class="advice-summary">${a.summary}</p>
+      <h3 class="advice-sub">${Lang.t('attentionPoints')}</h3>
+      <div class="advice-grid">${a.sections.map(x => adviceCard(x, L, false)).join('')}</div>
+      ${a.strengths.length ? `<h3 class="advice-sub">${Lang.t('strengthPoints')}</h3>
+      <div class="advice-grid">${a.strengths.map(x => adviceCard(x, L, true)).join('')}</div>` : ''}
+      <p class="fineprint">${Lang.t('adviceIntro')}</p>
+    </section>`;
+}
+
+/* ---------- toegang tot de onderzoekersweergave ---------- */
+function researcherUnlocked() {
+  if (typeof CONFIG === 'undefined' || !CONFIG.codeVereist) return true;
+  try { return localStorage.getItem('pccd.unlocked') === String(CONFIG.onderzoekerscode); }
+  catch (e) { return false; }
+}
+function renderLock() {
+  const main = document.querySelector('main');
+  main.innerHTML = `<div class="wrap"><section class="panel lock">
+      <h2>${Lang.t('lockTitle')}</h2>
+      <p class="fineprint">${Lang.t('lockLead')}</p>
+      <label class="field" style="max-width:280px;margin:14px 0 10px">
+        <span>${Lang.t('lockCode')}</span>
+        <input type="password" id="lockInput" autocomplete="off">
+      </label>
+      <button type="button" class="btn" id="lockBtn">${Lang.t('lockBtn')}</button>
+      <p class="lock-err" id="lockErr" hidden>${Lang.t('lockWrong')}</p>
+      <p class="fineprint" style="margin-top:16px">${Lang.t('lockNote')}</p>
+    </section></div>`;
+  const go = () => {
+    const v = main.querySelector('#lockInput').value.trim();
+    if (v === String(CONFIG.onderzoekerscode)) {
+      try { localStorage.setItem('pccd.unlocked', v); } catch (e) {}
+      location.reload();
+    } else { main.querySelector('#lockErr').hidden = false; }
+  };
+  main.querySelector('#lockBtn').addEventListener('click', go);
+  main.querySelector('#lockInput').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+}
+
 function axisLabel(dm, L) { return dm[L === 'nl' ? 'shortNl' : 'shortEn'] || dm[L]; }
 
 function fmt(v, dec = 2) { return v === null || v === undefined ? '—' : v.toFixed(dec); }
@@ -127,6 +192,7 @@ function fmt(v, dec = 2) { return v === null || v === undefined ? '—' : v.toFi
 /* ---------- homepage ---------- */
 function buildHome() {
   buildChrome('home');
+  if (!researcherUnlocked()) return renderLock();
   const L = Lang.get();
   document.title = Lang.t('siteTitle') + ' — ' + Lang.t('siteTagline');
   const hero = document.getElementById('hero');
@@ -188,12 +254,74 @@ function buildHome() {
       </div>
       <a class="btn" href="vergelijking.html">${Lang.t('compareTitle')}</a>`;
   }
+
+  buildShareBox();
+  buildImportBox();
   window.addEventListener('pccd:theme', () => location.reload());
+}
+
+/* ---------- deelnemerslink delen ---------- */
+function buildShareBox() {
+  const box = document.getElementById('shareBox');
+  if (!box) return;
+  const url = location.href.replace(/[^\/]*(\?.*)?$/, '') + 'deelnemen.html';
+  const L = Lang.get();
+  box.className = 'panel';
+  box.innerHTML = `
+    <h2>${L === 'nl' ? 'Link voor respondenten' : 'Link for respondents'}</h2>
+    <p class="fineprint">${L === 'nl'
+      ? 'Stuur deze link. De respondent kiest zelf welke lijst van toepassing is, vult die in en krijgt daarna het eigen spinnenweb met advies. Hij of zij ziet deze weergave niet.'
+      : 'Send this link. The respondent chooses which list applies, fills it in and then sees their own radar chart with advice. They do not see this view.'}</p>
+    <div class="linkrow">
+      <input type="text" id="shareUrl" readonly value="${url}">
+      <button type="button" class="btn small" id="shareCopy">${L === 'nl' ? 'Kopieren' : 'Copy'}</button>
+      <a class="ghost small" href="deelnemen.html" target="_blank" rel="noopener">${L === 'nl' ? 'Openen' : 'Open'}</a>
+    </div>`;
+  box.querySelector('#shareCopy').addEventListener('click', async e => {
+    const inp = box.querySelector('#shareUrl');
+    inp.select();
+    try { await navigator.clipboard.writeText(inp.value); } catch (err) { document.execCommand('copy'); }
+    e.target.textContent = L === 'nl' ? 'Gekopieerd' : 'Copied';
+    setTimeout(() => { e.target.textContent = L === 'nl' ? 'Kopieren' : 'Copy'; }, 1600);
+  });
+}
+
+/* ---------- antwoordcodes importeren ---------- */
+function buildImportBox() {
+  const box = document.getElementById('importBox');
+  if (!box) return;
+  box.className = 'panel';
+  box.innerHTML = `
+    <h2>${Lang.t('importTitle')}</h2>
+    <p class="fineprint">${Lang.t('importLead')}</p>
+    <textarea class="codebox" id="impArea" rows="4" placeholder="${Lang.t('importPlaceholder')}"></textarea>
+    <div class="export">
+      <button type="button" class="btn small" id="impBtn">${Lang.t('importBtn')}</button>
+      <span class="import-msg" id="impMsg"></span>
+    </div>`;
+  box.querySelector('#impBtn').addEventListener('click', () => {
+    const lines = box.querySelector('#impArea').value.split(/\s+/).filter(x => x.length > 8);
+    let ok = 0, bad = 0;
+    lines.forEach(line => {
+      const sub = decodeSubmission(line);
+      if (!sub) { bad++; return; }
+      const d = Store.load();
+      const r = { id: uid(), label: sub.label || defaultRespondentLabel(sub.qKey), answers: sub.answers };
+      d[sub.qKey].respondents.push(r);
+      d[sub.qKey].current = r.id;
+      ok++;
+    });
+    Store.save();
+    const msg = box.querySelector('#impMsg');
+    msg.textContent = `${ok} ${Lang.t('importDone')}` + (bad ? ` · ${bad} ${Lang.t('importFail')}` : '');
+    if (ok) setTimeout(() => location.reload(), 900);
+  });
 }
 
 /* ---------- vragenlijstpagina ---------- */
 function buildQuestionnaire(qKey) {
   buildChrome(qKey);
+  if (!researcherUnlocked()) return renderLock();
   const L = Lang.get();
   const q = QUESTIONNAIRES[qKey];
   document.title = q[L].title + ' — ' + Lang.t('siteTitle');
@@ -233,7 +361,8 @@ function buildQuestionnaire(qKey) {
     <div class="layout${q.dims.length > 10 ? ' layout-stack' : ''}">
       <section class="questions no-print" id="questions" aria-label="${q[L].title}"></section>
       <aside class="results" id="results"></aside>
-    </div>`;
+    </div>
+    <div id="adviceBlock"></div>`;
 
   const orgInput = root.querySelector('#orgInput');
   orgInput.addEventListener('input', () => {
@@ -437,6 +566,9 @@ function buildQuestionnaire(qKey) {
         <tbody>${rowsHtml.join('')}</tbody>
       </table>`;
 
+    renderAdvice(root.querySelector('#adviceBlock'), qKey,
+                 means, L, qKey === 'patienten' ? 'pat' : 'org');
+
     host.querySelectorAll('[data-scope]').forEach(b => b.addEventListener('click', () => { scope = b.dataset.scope; renderResults(); }));
     host.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { view = b.dataset.view; renderResults(); }));
     host.querySelector('#expPng').addEventListener('click', () => {
@@ -459,6 +591,7 @@ function buildQuestionnaire(qKey) {
 /* ---------- vergelijkingspagina ---------- */
 function buildCompare() {
   buildChrome('compare');
+  if (!researcherUnlocked()) return renderLock();
   const L = Lang.get();
   document.title = Lang.t('compareTitle') + ' — ' + Lang.t('siteTitle');
   const root = document.getElementById('app');
