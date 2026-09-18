@@ -32,7 +32,7 @@ function uid() { return 'r' + Math.random().toString(36).slice(2, 9); }
 function addRespondent(qKey, label) {
   const d = Store.load();
   const q = d[qKey];
-  const r = { id: uid(), label: label || defaultRespondentLabel(qKey), answers: {}, meta: {} };
+  const r = { id: uid(), label: label || defaultRespondentLabel(qKey), answers: {}, meta: {}, narrative: {} };
   q.respondents.push(r);
   q.current = r.id;
   Store.save();
@@ -100,7 +100,9 @@ function buildChrome(active) {
       <a href="patienten.html"${active === 'patienten' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.patienten[L].title}</a>
       <a href="professionals.html"${active === 'professionals' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.professionals[L].title}</a>
       <a href="pcpi-s.html"${active === 'pcpis' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.pcpis[L].title}</a>
+      <a href="mantelzorgers.html"${active === 'mantelzorgers' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.mantelzorgers[L].title}</a>
       <a href="analyse.html"${active === 'analyse' ? ' aria-current="page"' : ''}>${Lang.t('analysis')}</a>
+      <a href="codering.html"${active === 'codering' ? ' aria-current="page"' : ''}>${Lang.t('coding')}</a>
       <a href="vergelijking.html"${active === 'compare' ? ' aria-current="page"' : ''}>${Lang.t('compare')}</a>
     </nav>
     <div class="chrome-actions">
@@ -312,8 +314,30 @@ function buildImportBox() {
     <textarea class="codebox" id="impArea" rows="4" placeholder="${Lang.t('importPlaceholder')}"></textarea>
     <div class="export">
       <button type="button" class="btn small" id="impBtn">${Lang.t('importBtn')}</button>
+      <label class="ghost small" style="cursor:pointer">${Lang.t('importFile')}
+        <input type="file" id="impFile" accept=".json,application/json" multiple hidden></label>
       <span class="import-msg" id="impMsg"></span>
     </div>`;
+  const addFrom = (obj) => {
+    if (!obj || !QUESTIONNAIRES[obj.qKey]) return false;
+    const d = Store.load();
+    d[obj.qKey].respondents.push({
+      id: uid(), label: obj.label || defaultRespondentLabel(obj.qKey),
+      answers: obj.answers || {}, meta: obj.meta || {}, narrative: obj.narrative || {}
+    });
+    return true;
+  };
+  const fileInput = box.querySelector('#impFile');
+  if (fileInput) fileInput.addEventListener('change', async () => {
+    let ok = 0, bad = 0;
+    for (const file of fileInput.files) {
+      try { if (addFrom(JSON.parse(await file.text()))) ok++; else bad++; } catch (e) { bad++; }
+    }
+    Store.save();
+    box.querySelector('#impMsg').textContent = `${ok} ${Lang.t('importDone')}` + (bad ? ` · ${bad} ${Lang.t('importFail')}` : '');
+    if (ok) setTimeout(() => location.reload(), 900);
+  });
+
   box.querySelector('#impBtn').addEventListener('click', () => {
     const lines = box.querySelector('#impArea').value.split(/\s+/).filter(x => x.length > 8);
     let ok = 0, bad = 0;
@@ -321,7 +345,7 @@ function buildImportBox() {
       const sub = decodeSubmission(line);
       if (!sub) { bad++; return; }
       const d = Store.load();
-      const r = { id: uid(), label: sub.label || defaultRespondentLabel(sub.qKey), answers: sub.answers, meta: sub.meta || {} };
+      const r = { id: uid(), label: sub.label || defaultRespondentLabel(sub.qKey), answers: sub.answers, meta: sub.meta || {}, narrative: sub.narrative || {} };
       d[sub.qKey].respondents.push(r);
       d[sub.qKey].current = r.id;
       ok++;

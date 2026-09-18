@@ -302,6 +302,77 @@ const BG_PAT = [
     opts: [['j','Ja','Yes'],['s','Soms','Sometimes'],['n','Nee','No']] }
 ];
 
-function bgFields(qKey) {
+var bgFields = function (qKey) {
   return BG_COMMON.concat(qKey === 'patienten' ? BG_PAT : BG_PROF);
-}
+};
+
+/* ---------- Mantelzorgers: open vragen plus een score per dimensie ----------
+   Afgeleid van PCC dimensions professionals, herschreven vanuit het perspectief
+   van de naaste. Per dimensie een hoofdvraag, een doorvraag en een stelling. */
+const MANTEL_OPEN = {
+  d1: { q1: 'In hoeverre wordt er in de zorg rekening gehouden met wat voor degene voor wie u zorgt belangrijk is? Kunt u een voorbeeld noemen?',
+        q2: 'Wat gebeurde er toen u zelf iets aangaf over zijn of haar wensen?' },
+  d2: { q1: 'Hoe ervaart u de aandacht voor lichamelijk comfort: pijn, vermoeidheid, rust, en de ruimte waarin de zorg plaatsvindt?',
+        q2: 'Was er een moment waarop u dacht: hier had eerder iets moeten gebeuren?' },
+  d3: { q1: 'Hoe verloopt de afstemming tussen de verschillende zorgverleners, en weet u bij wie u terecht kunt?',
+        q2: 'Heeft u wel eens zelf informatie moeten doorgeven die al bekend had moeten zijn?' },
+  d4: { q1: 'Wat merkt u van overgangen in de zorg: een opname, een ontslag, een overplaatsing of een wisseling van zorgverlener?',
+        q2: 'Wat ging er bij zo’n overgang goed, en wat ging er mis?' },
+  d5: { q1: 'Is er aandacht voor hoe het emotioneel gaat met degene voor wie u zorgt?',
+        q2: 'Heeft iemand u ooit gevraagd hoe het met ú gaat?' },
+  d6: { q1: 'Hoe gemakkelijk krijgt u iemand te pakken op het moment dat het nodig is?',
+        q2: 'Wat doet u als het buiten kantooruren niet goed gaat?' },
+  d7: { q1: 'Krijgt u de informatie die u nodig heeft om uw rol als mantelzorger te kunnen vervullen?',
+        q2: 'Is er iets wat u achteraf eerder had willen weten?' },
+  d8: { q1: 'Hoe wordt u zelf betrokken bij de zorg, en is er aandacht voor wat het zorgen van u vraagt?',
+        q2: 'Wat zou u nodig hebben om dit vol te kunnen houden?' }
+};
+
+const MANTEL_ITEMS = [
+  ['m1', 'd1', 'Er wordt rekening gehouden met wat voor degene voor wie ik zorg belangrijk is', false],
+  ['m2', 'd2', 'Er is voldoende aandacht voor het lichamelijk comfort van degene voor wie ik zorg', false],
+  ['m3', 'd3', 'De zorg is goed op elkaar afgestemd en ik weet bij wie ik terecht kan', false],
+  ['m4', 'd4', 'Bij overgangen in de zorg gaat er geen informatie verloren', true],
+  ['m5', 'd5', 'Er is aandacht voor hoe het emotioneel gaat, ook met mij als naaste', false],
+  ['m6', 'd6', 'Ik kan iemand bereiken op het moment dat het nodig is', false],
+  ['m7', 'd7', 'Ik krijg de informatie die ik nodig heb om te kunnen zorgen', false],
+  ['m8', 'd8', 'Ik word betrokken bij de zorg en er is aandacht voor wat het van mij vraagt', false]
+];
+
+const BG_MANTEL = [
+  { id: 'r', type: 'choice', nl: 'Relatie tot degene voor wie u zorgt', en: 'Relationship to the person you care for',
+    opts: [['p','Partner','Partner'],['k','Kind','Child'],['o','Ouder','Parent'],
+           ['b','Broer of zus','Sibling'],['v','Vriend of buur','Friend or neighbour'],['x','Anders','Other']] },
+  { id: 'u', type: 'choice', nl: 'Hoeveel uur per week zorgt u ongeveer', en: 'Roughly how many hours a week do you care',
+    opts: [['1','Minder dan 4 uur','Less than 4 hours'],['2','4 tot 8 uur','4 to 8 hours'],
+           ['3','9 tot 20 uur','9 to 20 hours'],['4','Meer dan 20 uur','More than 20 hours']] },
+  { id: 'j', type: 'choice', nl: 'Hoe lang zorgt u al', en: 'How long have you been caring',
+    opts: [['1','Korter dan een jaar','Less than a year'],['2','1 tot 3 jaar','1 to 3 years'],
+           ['3','3 tot 10 jaar','3 to 10 years'],['4','Langer dan 10 jaar','More than 10 years']] },
+  { id: 'b', type: 'choice', nl: 'Hoe belastend ervaart u het zorgen', en: 'How demanding do you find the caring',
+    opts: [['1','Niet belastend','Not demanding'],['2','Enigszins','Somewhat'],
+           ['3','Behoorlijk','Considerably'],['4','Zwaar belastend','Very demanding']] }
+];
+
+QUESTIONNAIRES.mantelzorgers = {
+  key: 'mantelzorgers',
+  file: 'mantelzorgers.html',
+  series: 4,
+  narrative: true,
+  open: MANTEL_OPEN,
+  nl: { title: 'Mantelzorgers', subtitle: 'Persoonsgerichte zorg vanuit het perspectief van de naaste',
+        intro: 'Per onderwerp eerst een open vraag — u kunt uw antwoord inspreken of typen — en daarna één stelling om te scoren. Neem de tijd; het verhaal is belangrijker dan het cijfer.',
+        stem: '' },
+  en: { title: 'Informal carers', subtitle: 'Person-centred care from the relative’s perspective',
+        intro: 'For each topic an open question first — you can speak or type your answer — followed by one statement to score. Take your time; the story matters more than the number.',
+        stem: '' },
+  dims: PCC_DIMS,
+  items: mkItems(MANTEL_ITEMS)
+};
+
+// achtergrondvragen voor mantelzorgers
+const _bgFieldsBase = bgFields;
+bgFields = function (qKey) {
+  if (qKey === 'mantelzorgers') return BG_COMMON.concat(BG_MANTEL);
+  return _bgFieldsBase(qKey);
+};

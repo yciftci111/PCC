@@ -13,6 +13,7 @@ Een statische website met drie vragenlijsten over persoonsgerichte zorg (Person-
 | **Patiënten** | 38 items, 8 dimensies — persoonsgerichte zorg zoals ervaren door de patiënt of cliënt | spinnenweb over 8 dimensies |
 | **Professionals** | 38 items, dezelfde 8 dimensies — vanuit het perspectief van de zorgverlener | spinnenweb over 8 dimensies |
 | **PCPI-S** | 59 items, 17 constructen in 3 domeinen — Persoonsgerichte Praktijk Inventaris voor medewerkers | spinnenweb over 17 constructen |
+| **Mantelzorgers** | 8 open hoofdvragen met doorvraag, plus 8 stellingen — afgeleid van de professionalslijst, vanuit de naaste | spinnenweb over 8 dimensies |
 | **Vergelijken** | patiënten en professionals over elkaar heen, plus een verschiltabel | overlay, of beide afzonderlijk |
 
 Daarnaast is er een **analysedashboard** (`analyse.html`) met vier tabbladen — overzicht, steekproef, schalen en correlaties — en een filterkolom op achtergrondkenmerken.
@@ -66,6 +67,30 @@ Deze antwoorden reizen mee in de antwoordcode, dus na importeren kun je er metee
 - Items op "niet van toepassing" en onbeantwoorde items tellen nergens mee.
 
 Het spinnenweb op de vragenlijstpagina's gebruikt een iets andere berekening — daar worden de antwoorden op itemniveau samengevoegd over alle respondenten. Bij volledig ingevulde lijsten scheelt dat vrijwel niets; bij veel ontbrekende antwoorden kunnen de twee getallen iets uiteenlopen.
+
+## De mantelzorgerslijst en de thematische analyse
+
+De mantelzorgerslijst (`mantelzorgers.html`, en als vierde rol op de deelnemerslink) werkt anders dan de andere drie: per dimensie eerst een **open hoofdvraag en een doorvraag**, en daarna één stelling om te scoren. Zo krijg je het verhaal én een profiel dat naast dat van patiënten en professionals te leggen is.
+
+### Opnemen en transcriberen
+
+Bij elke open vraag zit een opnameknop. De opname blijft in IndexedDB **op het apparaat waarop is opgenomen** en reist nooit mee in een code of bestand; alleen de uitgewerkte tekst gaat mee. Terugluisteren en wissen kan per vraag.
+
+Spraak wordt automatisch omgezet naar tekst in **Chrome en Edge**; Safari en Firefox ondersteunen dat niet, en daar verschijnt een melding. Automatische omzetting vraagt internet, want de browser stuurt de audio naar de spraakdienst van de browserfabrikant — vertel dat aan de mantelzorger voordat je opneemt. De tekst is altijd met de hand te corrigeren, en typen zonder opname kan ook.
+
+Omdat een verhaal niet in een korte code past, levert deze lijst aan het eind een **JSON-bestand**. Dat stuur je naar de onderzoeker, die het importeert met de knop *Bestand importeren* op de startpagina. De korte code bevat alleen de cijfers.
+
+### Thematische analyse met één klik
+
+Op `codering.html` staat één knop. Die voert drie stappen uit:
+
+1. **Open coderen** — de antwoorden worden opgeknipt in fragmenten (zinnen van minstens vier woorden). Per fragment worden de drie sterkste betekenisdragende termen toegekend, gekozen op hoe kenmerkend ze zijn voor dat fragment ten opzichte van de rest. Nederlandse stopwoorden vallen af en woorden worden teruggebracht tot hun stam, zodat *afgestemd* en *afstemming* als één code tellen.
+2. **Axiaal coderen** — codes die vaak in dezelfde fragmenten voorkomen worden samengevoegd tot categorieën, net zolang tot er een hanteerbaar aantal over is (vijf tot twaalf, afhankelijk van de hoeveelheid tekst). Wat geen samenhang vertoont, gaat naar een zichtbare restcategorie in plaats van kunstmatig te worden ingedeeld.
+3. **Selectief coderen** — de categorie die het breedst over de dimensies ligt en het vaakst voorkomt, wordt aangewezen als kerncategorie, met een beschrijving van het verband met de andere categorieën en een illustratief citaat.
+
+Alle namen van codes en categorieën zijn ter plekke aan te passen; je wijzigingen worden bewaard en gaan mee in het rapport. Het rapport downloadt als Markdown. Er is ook een knop die alle fragmenten kopieert met een kant-en-klare opdracht voor een taalmodel, als je de analyse door een AI wilt laten doen of controleren.
+
+> **Wat dit wel en niet is.** De tool groepeert op **taalgebruik**, niet op betekenis. Twee mantelzorgers die hetzelfde bedoelen met andere woorden komen niet vanzelf bij elkaar, en ironie, ontkenning en context worden niet begrepen. Wat eruit komt is een reproduceerbare eerste ordening die je veel leeswerk bespaart — geen interpretatie. Vermeld in je verslag dat de eerste ordening machinaal tot stand kwam, dat je de fragmenten zelf hebt gelezen en de categorieën hebt bijgesteld, en welke keuzes je daarbij maakte. Zonder die stap is het geen gefundeerde theorie.
 
 ## Twee kanten: deelnemers en onderzoeker
 
@@ -139,6 +164,8 @@ Daarna: `http://localhost:8000`.
 index.html            onderzoekersweergave: de drie blokken, delen en importeren
 deelnemen.html        de link die je naar respondenten stuurt
 analyse.html          dashboard: overzicht, steekproef, schalen, correlaties
+mantelzorgers.html    open vragen met opname, plus een score per dimensie
+codering.html         open, axiaal en selectief coderen met een klik
 patienten.html        vragenlijst patiënten
 professionals.html    vragenlijst professionals
 pcpi-s.html           vragenlijst PCPI-S
@@ -148,6 +175,8 @@ assets/
   data.js             alle vragen, dimensies en constructen
   advice.js           adviesteksten per dimensie en scoreband, en de adviesgenerator
   analysis.js         statistiek (gemiddelden, alfa, correlaties) en het dashboard
+  coding.js           thematisering: fragmenten, open codes, categorieen, kerncategorie
+  coding-page.js      de codeerpagina en de export van het rapport
   participant.js      deelnemersmodus: rolkeuze, invullen, bedankscherm, antwoordcode
   i18n.js             Nederlandse en Engelse interfaceteksten, taal- en themakeuze
   radar.js            spinnenwebdiagram (eigen SVG-renderer) en PNG-export
@@ -167,6 +196,10 @@ Geen build-stap, geen afhankelijkheden, geen externe bronnen. De site werkt ook 
 **Adviesteksten** — `assets/advice.js`, met een Nederlandse en een Engelse set (`PCC_NL` / `PCC_EN` en `PCPIS_NL` / `PCPIS_EN`). Per dimensie staan er drie versies: voor een lage score (onder 2,5), een middenscore (2,5 tot 3,5) en een hoge score (3,5 en hoger). Bij de acht PCC-dimensies is er een variant voor de organisatie (`org`) en een voor de patiënt (`pat`); de patiëntvariant gaat over wat iemand zelf kan doen of bespreken, niet over wat de organisatie moet verbeteren.
 
 **Instellingen per veldsessie** — `assets/config.js`: naam van de organisatie, het e-mailadres waar codes naartoe gaan, en de toegangscode voor de onderzoekersweergave.
+
+**Mantelzorgervragen** — `assets/data.js`, in `MANTEL_OPEN` (de open vragen per dimensie) en `MANTEL_ITEMS` (de stellingen).
+
+**Stopwoorden en codeerinstellingen** — `assets/coding.js`. De Nederlandse stopwoordenlijst staat bovenaan; het aantal categorieën volgt uit `target` in de axiale stap.
 
 **Achtergrondvragen** — `assets/data.js`, onderaan in `BG_COMMON`, `BG_PROF` en `BG_PAT`. Elke optie is `['code', 'Nederlands', 'English']`; de code wordt opgeslagen, dus verander die niet meer nadat je gegevens hebt verzameld.
 
