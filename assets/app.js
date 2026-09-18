@@ -32,7 +32,7 @@ function uid() { return 'r' + Math.random().toString(36).slice(2, 9); }
 function addRespondent(qKey, label) {
   const d = Store.load();
   const q = d[qKey];
-  const r = { id: uid(), label: label || defaultRespondentLabel(qKey), answers: {} };
+  const r = { id: uid(), label: label || defaultRespondentLabel(qKey), answers: {}, meta: {} };
   q.respondents.push(r);
   q.current = r.id;
   Store.save();
@@ -100,6 +100,7 @@ function buildChrome(active) {
       <a href="patienten.html"${active === 'patienten' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.patienten[L].title}</a>
       <a href="professionals.html"${active === 'professionals' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.professionals[L].title}</a>
       <a href="pcpi-s.html"${active === 'pcpis' ? ' aria-current="page"' : ''}>${QUESTIONNAIRES.pcpis[L].title}</a>
+      <a href="analyse.html"${active === 'analyse' ? ' aria-current="page"' : ''}>${Lang.t('analysis')}</a>
       <a href="vergelijking.html"${active === 'compare' ? ' aria-current="page"' : ''}>${Lang.t('compare')}</a>
     </nav>
     <div class="chrome-actions">
@@ -260,10 +261,13 @@ function buildHome() {
   if (cmp) {
     cmp.innerHTML = `
       <div>
-        <h2>${Lang.t('compareTitle')}</h2>
-        <p>${Lang.t('compareLead')}</p>
+        <h2>${Lang.t('analysisTitle')} &amp; ${Lang.t('compareTitle')}</h2>
+        <p>${Lang.t('analysisLead')}</p>
       </div>
-      <a class="btn" href="vergelijking.html">${Lang.t('compareTitle')}</a>`;
+      <div class="cta-row">
+        <a class="btn" href="analyse.html">${Lang.t('analysis')}</a>
+        <a class="ghost" href="vergelijking.html">${Lang.t('compareTitle')}</a>
+      </div>`;
   }
 
   buildShareBox();
@@ -317,7 +321,7 @@ function buildImportBox() {
       const sub = decodeSubmission(line);
       if (!sub) { bad++; return; }
       const d = Store.load();
-      const r = { id: uid(), label: sub.label || defaultRespondentLabel(sub.qKey), answers: sub.answers };
+      const r = { id: uid(), label: sub.label || defaultRespondentLabel(sub.qKey), answers: sub.answers, meta: sub.meta || {} };
       d[sub.qKey].respondents.push(r);
       d[sub.qKey].current = r.id;
       ok++;
@@ -362,6 +366,11 @@ function buildQuestionnaire(qKey) {
         <button type="button" class="ghost small danger" id="delResp">${Lang.t('deleteRespondent')}</button>
       </div>
     </div>
+
+    <details class="bgpanel no-print" id="bgPanel">
+      <summary>${Lang.t('bgResearcher')}</summary>
+      <div class="bgfields" id="bgFields"></div>
+    </details>
 
     <div class="progress no-print">
       <div class="progress-bar"><span id="progFill"></span></div>
@@ -594,7 +603,26 @@ function buildQuestionnaire(qKey) {
     });
   }
 
-  function renderAll() { fillSelect(); renderQuestions(); renderProgress(); renderResults(); }
+  function renderBg() {
+    const r = currentRespondent(qKey);
+    const host = root.querySelector('#bgFields');
+    if (!host || !r) return;
+    if (!r.meta) r.meta = {};
+    host.innerHTML = renderBgFields(qKey, r.meta, L);
+    const write = (t) => {
+      const rr = currentRespondent(qKey);
+      if (!rr.meta) rr.meta = {};
+      const v = (t.value || '').trim();
+      if (v) rr.meta[t.dataset.bg] = v; else delete rr.meta[t.dataset.bg];
+      Store.save();
+    };
+    host.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.bg) write(e.target); });
+    host.addEventListener('input', e => {
+      if (e.target.dataset && e.target.dataset.bg && e.target.tagName === 'INPUT') write(e.target);
+    });
+  }
+
+  function renderAll() { fillSelect(); renderBg(); renderQuestions(); renderProgress(); renderResults(); }
   renderAll();
   window.addEventListener('pccd:theme', renderResults);
 }
@@ -724,13 +752,22 @@ function exportCsv(qKey) {
   const q = QUESTIONNAIRES[qKey];
   const d = Store.load();
   const dimName = {}; q.dims.forEach(x => dimName[x.id] = x[L]);
-  const head = ['organisatie', 'vragenlijst', 'respondent', 'item', 'dimensie', 'vraag', 'score'];
+  const fields = bgFields(qKey);
+  const label = (f, v) => {
+    if (f.type === 'text') return v || '';
+    const o = f.opts.find(x => x[0] === v);
+    return o ? (L === 'nl' ? o[1] : o[2]) : '';
+  };
+  const head = ['organisatie', 'vragenlijst', 'respondent']
+    .concat(fields.map(f => f[L]))
+    .concat(['item', 'dimensie', 'vraag', 'score']);
   const lines = [head.join(';')];
   d[qKey].respondents.forEach(r => {
+    const bg = fields.map(f => label(f, (r.meta || {})[f.id]));
     q.items.forEach(it => {
       const v = r.answers[it.id];
-      lines.push([d.org, q[L].title, r.label, it.id, dimName[it.dim], it.text,
-        v === undefined ? '' : (v === 'na' ? 'n.v.t.' : v)].map(csvCell).join(';'));
+      lines.push([d.org, q[L].title, r.label].concat(bg).concat([it.id, dimName[it.dim], it.text,
+        v === undefined ? '' : (v === 'na' ? 'n.v.t.' : v)]).map(csvCell).join(';'));
     });
   });
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });

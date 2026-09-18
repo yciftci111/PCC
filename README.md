@@ -15,6 +15,8 @@ Een statische website met drie vragenlijsten over persoonsgerichte zorg (Person-
 | **PCPI-S** | 59 items, 17 constructen in 3 domeinen — Persoonsgerichte Praktijk Inventaris voor medewerkers | spinnenweb over 17 constructen |
 | **Vergelijken** | patiënten en professionals over elkaar heen, plus een verschiltabel | overlay, of beide afzonderlijk |
 
+Daarnaast is er een **analysedashboard** (`analyse.html`) met vier tabbladen — overzicht, steekproef, schalen en correlaties — en een filterkolom op achtergrondkenmerken.
+
 Elk blok levert naast het diagram een **geschreven advies**: een samenvatting van het profiel, de dimensies met de meeste ruimte (met per dimensie wat de score laat zien en wat ermee te doen valt), en wat goed gaat.
 
 Verder:
@@ -24,6 +26,46 @@ Verder:
 - **Lichte en donkere weergave**, met een knop en automatisch volgens de systeeminstelling.
 - **Export.** Diagram als PNG, gegevens als CSV, en afdrukken naar PDF voor de presentatie aan het eind van de dag.
 - **Toegankelijkheid.** Elk diagram heeft een tabelweergave; de scores staan nooit alleen in kleur.
+
+## Het analysedashboard
+
+`analyse.html` toont per vragenlijst wat er uit de antwoorden komt. Links staat een filterkolom, rechts vier tabbladen.
+
+**Overzicht** — per schaal een kaart met het gemiddelde, de standaarddeviatie, het aantal respondenten, de positie op de schaal 1–5, en **Cronbachs alfa** als betrouwbaarheidsmaat. Daaronder hetzelfde beeld als spinnenweb, plus het geschreven advies over de huidige selectie.
+
+**Steekproef** — wie heeft de vragenlijst ingevuld: kerncijfers bovenaan, daaronder per achtergrondvraag de aantallen en percentages met staafjes.
+
+**Schalen** — per schaal de afzonderlijke items met gemiddelde, standaarddeviatie, aantal antwoorden en de verdeling over de vijf antwoordcategorieën. Hiermee zie je welke vraag een lage schaalscore veroorzaakt.
+
+**Correlaties** — een matrix met de samenhang tussen de schalen, en een lijst van de vijf sterkste verbanden. Onder ongeveer twintig respondenten waarschuwt de pagina zelf dat de uitkomsten onstabiel zijn.
+
+### Filteren
+
+De filterkolom werkt op de achtergrondvragen. Vink bijvoorbeeld twee leeftijdsgroepen aan en alle vier de tabbladen herberekenen zich over die selectie. Achter elke optie staat hoeveel respondenten eraan voldoen; opties zonder respondenten zijn uitgeschakeld.
+
+Let op: een respondent die een achtergrondvraag heeft overgeslagen valt buiten elk filter op die vraag. Dat is bewust — anders zou je niet weten over wie een uitkomst gaat — maar het verklaart waarom een selectie soms kleiner is dan verwacht.
+
+### Achtergrondvragen
+
+Elke respondent krijgt, boven aan de vragenlijst, een kort blok **Over uzelf**. Alle velden zijn optioneel.
+
+| | Vragen |
+|---|---|
+| Iedereen | geslacht, leeftijd, hoogst afgeronde opleiding |
+| Zorgverleners en medewerkers | afdeling of team (vrij veld), functie, jaren werkervaring |
+| Patiënten en cliënten | hoe lang men hier zorg ontvangt, vorm van zorg, of er een naaste betrokken is |
+
+Deze antwoorden reizen mee in de antwoordcode, dus na importeren kun je er meteen op filteren. Vul je een respondent zelf in op de onderzoekerspagina, dan doe je dat via het uitklapbare blok **Achtergrond van deze respondent**. De CSV-export bevat alle achtergrondkolommen.
+
+### Hoe de cijfers berekend worden
+
+- **Schaalscore van een respondent**: het gemiddelde van de items die hij of zij beantwoordde, mits minstens de helft van de items van die schaal is ingevuld. Anders telt die respondent niet mee voor die schaal.
+- **Schaalgemiddelde**: het gemiddelde van die respondentscores; de standaarddeviatie gaat over dezelfde verzameling.
+- **Cronbachs alfa**: berekend over de respondenten die álle items van die schaal beantwoordden, en alleen bij drie of meer van zulke respondenten. Vanaf 0,70 wordt doorgaans van voldoende interne consistentie gesproken.
+- **Correlaties**: Pearson, over respondenten met een score op beide schalen.
+- Items op "niet van toepassing" en onbeantwoorde items tellen nergens mee.
+
+Het spinnenweb op de vragenlijstpagina's gebruikt een iets andere berekening — daar worden de antwoorden op itemniveau samengevoegd over alle respondenten. Bij volledig ingevulde lijsten scheelt dat vrijwel niets; bij veel ontbrekende antwoorden kunnen de twee getallen iets uiteenlopen.
 
 ## Twee kanten: deelnemers en onderzoeker
 
@@ -96,6 +138,7 @@ Daarna: `http://localhost:8000`.
 ```
 index.html            onderzoekersweergave: de drie blokken, delen en importeren
 deelnemen.html        de link die je naar respondenten stuurt
+analyse.html          dashboard: overzicht, steekproef, schalen, correlaties
 patienten.html        vragenlijst patiënten
 professionals.html    vragenlijst professionals
 pcpi-s.html           vragenlijst PCPI-S
@@ -104,6 +147,7 @@ assets/
   config.js           organisatienaam, e-mailadres en toegangscode
   data.js             alle vragen, dimensies en constructen
   advice.js           adviesteksten per dimensie en scoreband, en de adviesgenerator
+  analysis.js         statistiek (gemiddelden, alfa, correlaties) en het dashboard
   participant.js      deelnemersmodus: rolkeuze, invullen, bedankscherm, antwoordcode
   i18n.js             Nederlandse en Engelse interfaceteksten, taal- en themakeuze
   radar.js            spinnenwebdiagram (eigen SVG-renderer) en PNG-export
@@ -123,6 +167,8 @@ Geen build-stap, geen afhankelijkheden, geen externe bronnen. De site werkt ook 
 **Adviesteksten** — `assets/advice.js`, met een Nederlandse en een Engelse set (`PCC_NL` / `PCC_EN` en `PCPIS_NL` / `PCPIS_EN`). Per dimensie staan er drie versies: voor een lage score (onder 2,5), een middenscore (2,5 tot 3,5) en een hoge score (3,5 en hoger). Bij de acht PCC-dimensies is er een variant voor de organisatie (`org`) en een voor de patiënt (`pat`); de patiëntvariant gaat over wat iemand zelf kan doen of bespreken, niet over wat de organisatie moet verbeteren.
 
 **Instellingen per veldsessie** — `assets/config.js`: naam van de organisatie, het e-mailadres waar codes naartoe gaan, en de toegangscode voor de onderzoekersweergave.
+
+**Achtergrondvragen** — `assets/data.js`, onderaan in `BG_COMMON`, `BG_PROF` en `BG_PAT`. Elke optie is `['code', 'Nederlands', 'English']`; de code wordt opgeslagen, dus verander die niet meer nadat je gegevens hebt verzameld.
 
 **Interfaceteksten** — `assets/i18n.js`.
 

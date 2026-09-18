@@ -266,3 +266,42 @@ const QUESTIONNAIRES = {
     items: mkItems(PCPIS_ITEMS)
   }
 };
+
+/* ---------- achtergrondvragen (voor filteren en groepsvergelijking) ---------- */
+// type: 'choice' = keuzelijst, 'text' = vrij veld (niet filterbaar als reeks)
+const BG_COMMON = [
+  { id: 'g', type: 'choice', nl: 'Geslacht', en: 'Gender',
+    opts: [['v','Vrouw','Woman'],['m','Man','Man'],['x','Anders','Other'],['z','Zeg ik liever niet','Prefer not to say']] },
+  { id: 'a', type: 'choice', nl: 'Leeftijd', en: 'Age',
+    opts: [['1','18–24','18–24'],['2','25–34','25–34'],['3','35–44','35–44'],['4','45–54','45–54'],['5','55–64','55–64'],['6','65+','65+']] },
+  { id: 'o', type: 'choice', nl: 'Hoogst afgeronde opleiding', en: 'Highest completed education',
+    opts: [['0','Geen opleiding afgerond','No qualification'],['1','Basisonderwijs','Primary education'],
+           ['2','VMBO','VMBO (pre-vocational)'],['3','MAVO','MAVO'],['4','HAVO','HAVO'],['5','VWO','VWO'],
+           ['6','MBO','MBO (vocational)'],['7','HBO','HBO (applied university)'],['8','WO','University']] }
+];
+const BG_PROF = [
+  { id: 't', type: 'text', nl: 'Afdeling of team', en: 'Ward or team', ph: 'bijv. Afdeling 2 / Wijkteam Noord' },
+  { id: 'f', type: 'choice', nl: 'Functie', en: 'Role',
+    opts: [['h','Helpende of zorgassistent','Care assistant'],['v','Verzorgende','Nursing assistant'],
+           ['p','Verpleegkundige','Nurse'],['b','Arts of behandelaar','Doctor or clinician'],
+           ['r','Paramedicus','Allied health professional'],['l','Leidinggevende','Manager'],
+           ['o','Ondersteunend of facilitair','Support or facilities'],['x','Anders','Other']] },
+  { id: 'e', type: 'choice', nl: 'Jaren werkervaring in de zorg', en: 'Years of experience in care',
+    opts: [['1','Minder dan 1 jaar','Less than 1 year'],['2','1–5 jaar','1–5 years'],['3','6–10 jaar','6–10 years'],
+           ['4','11–20 jaar','11–20 years'],['5','Meer dan 20 jaar','More than 20 years']] }
+];
+const BG_PAT = [
+  { id: 'd', type: 'choice', nl: 'Hoe lang ontvangt u hier zorg', en: 'How long have you received care here',
+    opts: [['1','Korter dan 3 maanden','Less than 3 months'],['2','3 tot 12 maanden','3 to 12 months'],
+           ['3','1 tot 5 jaar','1 to 5 years'],['4','Langer dan 5 jaar','More than 5 years']] },
+  { id: 'v', type: 'choice', nl: 'Vorm van zorg', en: 'Type of care',
+    opts: [['t','Thuiszorg','Home care'],['w','Verpleeghuis of woonzorg','Nursing home or residential care'],
+           ['z','Ziekenhuis of polikliniek','Hospital or outpatient clinic'],['h','Huisartsenzorg','GP care'],
+           ['g','Geestelijke gezondheidszorg','Mental health care'],['x','Anders','Other']] },
+  { id: 'n', type: 'choice', nl: 'Is er een naaste bij uw zorg betrokken', en: 'Is a relative involved in your care',
+    opts: [['j','Ja','Yes'],['s','Soms','Sometimes'],['n','Nee','No']] }
+];
+
+function bgFields(qKey) {
+  return BG_COMMON.concat(qKey === 'patienten' ? BG_PAT : BG_PROF);
+}

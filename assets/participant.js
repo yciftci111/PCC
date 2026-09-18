@@ -17,6 +17,7 @@ const PStore = {
     if (!d.answers || typeof d.answers !== 'object') d.answers = {};
     if (typeof d.label !== 'string') d.label = '';
     if (typeof d.role !== 'string') d.role = '';
+    if (!d.meta || typeof d.meta !== 'object') d.meta = {};
     if (typeof d.done !== 'boolean') d.done = false;
     PStore._c = d;
     return d;
@@ -28,7 +29,7 @@ const PStore = {
 /* ---------- antwoordcode ---------- */
 // Compact: v1|qKey|label|reeks cijfers. 1-5 = score, n = niet van toepassing,
 // . = niet beantwoord. Daarna base64 zodat het als een tekstregel te mailen is.
-function encodeSubmission(qKey, label, answers) {
+function encodeSubmission(qKey, label, answers, meta) {
   const q = QUESTIONNAIRES[qKey];
   const digits = q.items.map(it => {
     const v = answers[it.id];
@@ -36,15 +37,17 @@ function encodeSubmission(qKey, label, answers) {
     if (typeof v === 'number' && v >= 1 && v <= 5) return String(v);
     return '.';
   }).join('');
-  const raw = ['v1', qKey, (label || '').replace(/\|/g, '/'), digits].join('|');
+  const clean = x => String(x == null ? '' : x).replace(/[|~]/g, ' ');
+  const metaStr = bgFields(qKey).map(f => clean((meta || {})[f.id])).join('~');
+  const raw = ['v2', qKey, clean(label), digits, metaStr].join('|');
   return 'PCCD-' + btoa(unescape(encodeURIComponent(raw))).replace(/=+$/, '');
 }
 function decodeSubmission(code) {
   try {
     const body = String(code).trim().replace(/^PCCD-/, '');
     const raw = decodeURIComponent(escape(atob(body)));
-    const [ver, qKey, label, digits] = raw.split('|');
-    if (ver !== 'v1' || !QUESTIONNAIRES[qKey]) return null;
+    const [ver, qKey, label, digits, metaStr] = raw.split('|');
+    if ((ver !== 'v1' && ver !== 'v2') || !QUESTIONNAIRES[qKey]) return null;
     const q = QUESTIONNAIRES[qKey];
     if (!digits || digits.length !== q.items.length) return null;
     const answers = {};
@@ -53,8 +56,29 @@ function decodeSubmission(code) {
       if (c === 'n') answers[it.id] = 'na';
       else if (c >= '1' && c <= '5') answers[it.id] = Number(c);
     });
-    return { qKey, label: label || '', answers };
+    const meta = {};
+    if (ver === 'v2' && metaStr !== undefined) {
+      const parts = metaStr.split('~');
+      bgFields(qKey).forEach((f, i) => { if (parts[i]) meta[f.id] = parts[i]; });
+    }
+    return { qKey, label: label || '', answers, meta };
   } catch (e) { return null; }
+}
+
+/* ---------- achtergrondvelden ---------- */
+function renderBgFields(qKey, meta, L) {
+  return bgFields(qKey).map(f => {
+    const cur = (meta || {})[f.id] || '';
+    if (f.type === 'text') {
+      return `<label class="field"><span>${f[L]}</span>
+        <input type="text" data-bg="${f.id}" placeholder="${f.ph || ''}" value="${String(cur).replace(/"/g, '&quot;')}"></label>`;
+    }
+    return `<label class="field"><span>${f[L]}</span>
+      <select data-bg="${f.id}">
+        <option value="">${Lang.t('bgChoose')}…</option>
+        ${f.opts.map(([v, nl, en]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${L === 'nl' ? nl : en}</option>`).join('')}
+      </select></label>`;
+  }).join('');
 }
 
 /* ---------- opbouw ---------- */
@@ -156,6 +180,23 @@ function buildParticipant() {
       s.textContent = q[L].stem.replace('{org}', org);
       host.appendChild(s);
     }
+    const bg = document.createElement('section');
+    bg.className = 'dim bgform';
+    bg.innerHTML = `<h3 class="dim-head">${Lang.t('bgTitle')}</h3>
+      <p class="fineprint" style="margin-bottom:12px">${Lang.t('bgLead')}</p>
+      <div class="bgfields">${renderBgFields(d.role, d.meta, L)}</div>`;
+    host.appendChild(bg);
+    const writeBg = (t) => {
+      const dd = PStore.load();
+      const v = (t.value || '').trim();
+      if (v) dd.meta[t.dataset.bg] = v; else delete dd.meta[t.dataset.bg];
+      PStore.save();
+    };
+    bg.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.bg) writeBg(e.target); });
+    bg.addEventListener('input', e => {
+      if (e.target.dataset && e.target.dataset.bg && e.target.tagName === 'INPUT') writeBg(e.target);
+    });
+
     const key = document.createElement('div');
     key.className = 'scalekey';
     key.innerHTML = SCALE_LABELS[L].map((lab, i) => `<span><b>${i + 1}</b> ${lab}</span>`).join('') +
@@ -239,7 +280,7 @@ function buildParticipant() {
     const means = dimMeans(d.role, fake);
     const vals = q.dims.map(x => means[x.id].mean);
     const voice = d.role === 'patienten' ? 'pat' : 'org';
-    const code = encodeSubmission(d.role, d.label, d.answers);
+    const code = encodeSubmission(d.role, d.label, d.answers, d.meta);
     const mail = CONFIG.onderzoekerEmail;
 
     root.innerHTML = `
@@ -283,7 +324,7 @@ function buildParticipant() {
     function refreshCode() {
       const dd = PStore.load();
       dd.label = nameInput.value; PStore.save();
-      codeBox.value = encodeSubmission(dd.role, dd.label, dd.answers);
+      codeBox.value = encodeSubmission(dd.role, dd.label, dd.answers, dd.meta);
       const a = root.querySelector('#pSend');
       if (a) {
         const subj = encodeURIComponent('PCCD ' + q[L].title + (dd.label ? ' - ' + dd.label : ''));
